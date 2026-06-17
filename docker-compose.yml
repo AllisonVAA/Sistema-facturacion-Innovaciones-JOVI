@@ -1,0 +1,41 @@
+services:
+
+  # ── Aplicación principal ─────────────────────────────────────────────────
+  facturacion:
+    build: .
+    expose:
+      - "8000"          # Solo visible internamente; Caddy hace de proxy HTTPS
+    volumes:
+      - datos:/data     # Volumen Docker gestionado — persiste entre reinicios
+    env_file:
+      - .env
+    environment:
+      - DATABASE_PATH=/data/database/facturas.db
+      - XML_OUTPUT_DIR=/data/xml_output
+      - LOG_DIR=/data/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - caddy
+
+  # ── Proxy inverso con SSL automático (Let's Encrypt) ─────────────────────
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"    # HTTP/3 (QUIC)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_datos:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  datos:          # Datos de la aplicación (SQLite, XMLs, logs)
+  caddy_datos:    # Certificados SSL de Let's Encrypt
+  caddy_config:   # Configuración interna de Caddy

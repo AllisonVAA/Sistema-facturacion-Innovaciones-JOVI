@@ -1,0 +1,27 @@
+# ── Secretos — NUNCA subir al repositorio ────────────────────────────────────
+.env
+*.p12
+*.pfx
+*.key
+*.pem
+
+# ── Datos generados en local ──────────────────────────────────────────────────
+database/facturas.db
+xml_output/
+logs/
+data/
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp

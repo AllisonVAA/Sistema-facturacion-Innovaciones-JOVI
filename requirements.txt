@@ -1,0 +1,12 @@
+# ── Core ─────────────────────────────────────────────────────────────────────
+requests>=2.31.0
+python-dotenv>=1.0.0
+tzdata>=2024.1              # ZoneInfo en Windows y contenedores
+
+# ── API web ───────────────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+apscheduler>=3.10.4
+
+# ── CRlibre (descomentar cuando se configuren las credenciales de Hacienda) ──
+# crlibre>=1.0.0

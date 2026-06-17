@@ -1,0 +1,32 @@
+# Caddyfile — Proxy inverso con SSL automático (Let's Encrypt)
+#
+# ANTES DE ARRANCAR:
+#   Reemplaza "tudominio.com" con tu dominio real.
+#   El dominio debe apuntar a la IP de tu Droplet en los DNS
+#   (registro A: tudominio.com → IP_DEL_DROPLET).
+#
+# Sin dominio propio (acceso por IP directa):
+#   Cambia la primera línea por:  :8080
+#   Y accede por http://IP_DEL_DROPLET:8080
+#   (sin SSL, solo para desarrollo/pruebas)
+
+tudominio.com {
+    # Redirige todo el tráfico al servicio FastAPI
+    reverse_proxy facturacion:8000
+
+    # Logs de acceso
+    log {
+        output file /data/logs/caddy_access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+
+    # Cabeceras de seguridad
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
