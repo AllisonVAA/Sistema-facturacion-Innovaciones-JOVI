@@ -7,6 +7,11 @@
 
 # ── Datos generados en local ──────────────────────────────────────────────────
 database/facturas.db
+database/facturas.db-shm
+database/facturas.db-wal
+database/*.db
+database/*.db-shm
+database/*.db-wal
 xml_output/
 logs/
 data/
