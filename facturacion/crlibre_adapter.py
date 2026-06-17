@@ -72,6 +72,45 @@ _MEDIO_PAGO_MAP: dict[str, str] = {
     "OTHER":             "99",
 }
 
+# Métodos de pago personalizados de Loyverse llegan como type "OTHER" con un
+# nombre propio. Se clasifican por palabra clave en el nombre.
+# Códigos Hacienda: 01=Efectivo 02=Tarjeta 03=Cheque 04=Transferencia
+#                   06=SINPE Móvil 99=Otros
+_NOMBRE_PAGO_MAP: dict[str, str] = {
+    "sinpe":         "06",
+    "transferencia": "04",
+    "transfer":      "04",
+    "deposito":      "04",
+    "depósito":      "04",
+    "efectivo":      "01",
+    "cash":          "01",
+    "tarjeta":       "02",
+    "credito":       "02",
+    "crédito":       "02",
+    "debito":        "02",
+    "débito":        "02",
+    "cheque":        "03",
+}
+
+
+def _codigo_medio_pago(pago: dict) -> str:
+    """
+    Determina el código Hacienda de un pago de Loyverse.
+
+    Los tipos estándar (CASH, CARD, etc.) se mapean por `type`. Los métodos
+    personalizados llegan como `type: OTHER` y se clasifican por su `name`
+    (ej. "Transferencia" -> 04, "SINPE Móvil" -> 06).
+    """
+    tipo = (pago.get("type") or "OTHER").upper()
+    if tipo in _MEDIO_PAGO_MAP and tipo != "OTHER":
+        return _MEDIO_PAGO_MAP[tipo]
+
+    nombre = (pago.get("name") or "").lower()
+    for clave, codigo in _NOMBRE_PAGO_MAP.items():
+        if clave in nombre:
+            return codigo
+    return "99"
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -248,7 +287,7 @@ def venta_a_factura(recibo: dict, consecutivo: str) -> dict[str, Any]:
     # ── Medio de pago ─────────────────────────────────────────────────────────
     medios_pago: list[str] = []
     for p in recibo.get("payments", []):
-        codigo = _MEDIO_PAGO_MAP.get(p.get("type", "OTHER").upper(), "99")
+        codigo = _codigo_medio_pago(p)
         if codigo not in medios_pago:
             medios_pago.append(codigo)
     if not medios_pago:
