@@ -105,7 +105,7 @@ info "Creando archivo .env..."
 ENV_FILE="$APP_DIR/.env"
 
 cat > "$ENV_FILE" << EOF
-# Generado automáticamente por setup_servidor.sh
+# Generado automaticamente por setup_servidor.sh
 # Modificar con: nano $ENV_FILE
 
 # ── Loyverse ──────────────────────────────────────────────────────────────────
