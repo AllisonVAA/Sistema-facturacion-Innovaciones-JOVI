@@ -263,8 +263,9 @@ def run() -> dict:
 
     logger.info("=" * 65)
     logger.info("INNOVACIONES JOVI - Facturacion Electronica CR")
-    logger.info("Inicio: %s | Ambiente: %s | Mock: %s",
-                inicio.strftime("%Y-%m-%d %H:%M:%S"), settings.AMBIENTE, settings.USE_MOCK)
+    logger.info("Inicio: %s | Ambiente: %s | Mock Loyverse: %s | Mock Hacienda: %s",
+                inicio.strftime("%Y-%m-%d %H:%M:%S"), settings.AMBIENTE,
+                settings.USE_MOCK_LOYVERSE, settings.USE_MOCK_HACIENDA)
     logger.info("=" * 65)
 
     # 1. Inicializar BD

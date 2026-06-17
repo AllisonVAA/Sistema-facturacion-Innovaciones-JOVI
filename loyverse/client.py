@@ -447,7 +447,8 @@ class LoyverseMockClient:
 # ── Factory ───────────────────────────────────────────────────────────────────
 
 def get_loyverse_client() -> LoyverseClient | LoyverseMockClient:
-    if settings.USE_MOCK:
-        logger.warning("[MOCK] Usando LoyverseMockClient. Cambia USE_MOCK=false para produccion.")
+    if settings.USE_MOCK_LOYVERSE:
+        logger.warning("[MOCK] Usando LoyverseMockClient. Cambia USE_MOCK_LOYVERSE=false para datos reales.")
         return LoyverseMockClient()
+    logger.info("Usando Loyverse REAL (API en vivo).")
     return LoyverseClient()

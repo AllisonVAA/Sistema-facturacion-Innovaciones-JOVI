@@ -84,6 +84,12 @@ class Config:
     MAX_RETRIES: int       = int(os.getenv("MAX_RETRIES", "3"))
     RETRY_DELAY_SECONDS: int = int(os.getenv("RETRY_DELAY_SECONDS", "15"))
     USE_MOCK: bool         = os.getenv("USE_MOCK", "true").lower() == "true"
+    # Flags granulares: permiten conectar Loyverse real SIN activar el envío a
+    # Hacienda. Si no se definen explícitamente, heredan el valor de USE_MOCK.
+    #   USE_MOCK_LOYVERSE=false  -> lee ventas reales de Loyverse
+    #   USE_MOCK_HACIENDA=false  -> emite a Hacienda (requiere credenciales+cert)
+    USE_MOCK_LOYVERSE: bool = os.getenv("USE_MOCK_LOYVERSE", str(USE_MOCK)).lower() == "true"
+    USE_MOCK_HACIENDA: bool = os.getenv("USE_MOCK_HACIENDA", str(USE_MOCK)).lower() == "true"
     MONEDA: str            = os.getenv("MONEDA", "CRC")
     TIMEZONE              = "America/Costa_Rica"
     UTC_OFFSET            = "-06:00"

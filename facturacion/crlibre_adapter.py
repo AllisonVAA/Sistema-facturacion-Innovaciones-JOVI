@@ -549,7 +549,7 @@ def procesar_factura(
     xml_path = guardar_xml(datos["Clave"], xml_content)
 
     # 5. Enviar a Hacienda
-    usar_mock = settings.USE_MOCK or not CRLIBRE_DISPONIBLE
+    usar_mock = settings.USE_MOCK_HACIENDA or not CRLIBRE_DISPONIBLE
     if not usar_mock and not settings.hacienda_lista():
         logger.warning(
             "Credenciales de Hacienda incompletas. Usando mock aunque USE_MOCK=false."

@@ -45,6 +45,8 @@ async def health_check() -> dict:
         "hora_cr":  _ahora_cr(),
         "ambiente": settings.AMBIENTE,
         "mock":     settings.USE_MOCK,
+        "mock_loyverse": settings.USE_MOCK_LOYVERSE,
+        "mock_hacienda": settings.USE_MOCK_HACIENDA,
         "hacienda_lista": settings.hacienda_lista(),
         "email_configurado": settings.email_configurado(),
     }
@@ -59,6 +61,8 @@ async def status_detallado() -> dict:
         "hora_cr":  _ahora_cr(),
         "ambiente": settings.AMBIENTE,
         "mock":     settings.USE_MOCK,
+        "mock_loyverse": settings.USE_MOCK_LOYVERSE,
+        "mock_hacienda": settings.USE_MOCK_HACIENDA,
         "hacienda_lista": settings.hacienda_lista(),
         "resumen_facturas_hoy": resumen,
         "hora_ejecucion_diaria": f"{settings.HORA_EJECUCION:02d}:00 (hora Costa Rica)",
@@ -125,7 +129,7 @@ async def facturar_recibo(
     cliente_lv = get_loyverse_client()
 
     # En modo real se necesita obtener el recibo específico de Loyverse
-    if not settings.USE_MOCK:
+    if not settings.USE_MOCK_LOYVERSE:
         try:
             recibo_raw = cliente_lv._get(f"receipts/{loyverse_id}")
         except Exception as exc:
