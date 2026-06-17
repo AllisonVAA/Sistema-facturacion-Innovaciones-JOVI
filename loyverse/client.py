@@ -4,7 +4,7 @@ loyverse/client.py — Cliente de la API de Loyverse para Innovaciones JOVI.
 Mejoras sobre la versión anterior:
   - Paginación completa con cursor (nunca se pierden ventas)
   - Zona horaria correcta: Costa Rica = UTC-6, sin horario de verano
-  - ID único real: campo 'id' (UUID), no 'receipt_number'
+  - ID único real: 'receipt_number' (la API de recibos no expone 'id')
   - Caché de clientes para no repetir llamadas a /customers/{id}
   - Filtro de recibos cancelados
   - Mapeo de métodos de pago a códigos Hacienda
@@ -279,6 +279,12 @@ class LoyverseClient:
         Retorna el recibo con los campos 'customer_data' y 'store_data' agregados.
         """
         recibo = dict(recibo)  # no mutar el original
+
+        # La API real de Loyverse identifica los recibos por 'receipt_number'
+        # (no expone un campo 'id'). Normalizamos para que el resto del sistema
+        # use un identificador único estable independientemente de la fuente.
+        if not recibo.get("id"):
+            recibo["id"] = str(recibo.get("receipt_number", ""))
 
         customer_id = recibo.get("customer_id")
         if customer_id:

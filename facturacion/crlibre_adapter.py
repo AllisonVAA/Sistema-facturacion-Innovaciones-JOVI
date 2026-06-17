@@ -45,6 +45,10 @@ except ImportError:
 # ── Tablas de codigos Hacienda ────────────────────────────────────────────────
 
 # Tasa IVA -> CodigoTarifa Hacienda
+# Tasa de IVA aplicada a todos los productos de Innovaciones JOVI.
+# Decisión de negocio: los precios en Loyverse incluyen el 13% (IVA-inclusivo).
+_IVA_RATE: float = 13.0
+
 _TARIFA_MAP: dict[float, str] = {
     0.0:  "01",   # Exento
     1.0:  "02",   # Reducida 1%
@@ -55,13 +59,17 @@ _TARIFA_MAP: dict[float, str] = {
 }
 
 # Loyverse payment type -> codigo Hacienda
+# 01=Efectivo, 02=Tarjeta, 03=Cheque, 04=Transferencia, 99=Otros
 _MEDIO_PAGO_MAP: dict[str, str] = {
-    "CASH":       "01",
-    "CARD":       "02",
-    "CHECK":      "03",
-    "TRANSFER":   "04",
-    "GIFT_CARD":  "99",
-    "OTHER":      "99",
+    "CASH":              "01",
+    "CARD":              "02",
+    "NONINTEGRATEDCARD": "02",   # Tarjeta no integrada (datafono externo)
+    "IZETTLECARD":       "02",
+    "CREDITCARD":        "02",
+    "CHECK":             "03",
+    "TRANSFER":          "04",
+    "GIFT_CARD":         "99",
+    "OTHER":             "99",
 }
 
 
@@ -138,13 +146,17 @@ def _convertir_lineas(line_items: list[dict]) -> tuple[list[dict], dict]:
     """
     Convierte los line_items de Loyverse al formato de DetalleServicio.
 
-    Los precios de Innovaciones JOVI son IVA-INCLUSIVO (13%).
-    Fórmula para cada línea:
-      total_bruto     = total_money   (con IVA)
-      total_impuesto  = total_tax_money
-      subtotal_neto   = total_bruto - total_impuesto
-      precio_unitario = subtotal_neto / cantidad
+    Decisión de negocio (Innovaciones JOVI): los precios YA incluyen el IVA 13%.
+    Loyverse no tiene el impuesto configurado (reporta total_tax=0), así que el
+    13% se desglosa aquí a partir del monto bruto de cada línea:
 
+      bruto_con_iva   = gross_total_money   (precio final, antes de descuento)
+      descuento_bruto = total_discount      (descuento con IVA incluido)
+      neto            = bruto_con_iva / 1.13
+      base_imponible  = (bruto_con_iva - descuento_bruto) / 1.13
+      iva             = base_imponible * 0.13
+
+    Todas las líneas se tratan como gravadas al 13% (CodigoTarifa 08).
     Retorna (lineas_hacienda, resumen).
     """
     lineas = []
@@ -157,22 +169,20 @@ def _convertir_lineas(line_items: list[dict]) -> tuple[list[dict], dict]:
     }
 
     for idx, item in enumerate(line_items, start=1):
-        cantidad        = float(item.get("quantity", 1))
-        total_bruto     = float(item.get("total_money", 0))
-        total_impuesto  = float(item.get("total_tax_money", 0))
-        descuento       = float(item.get("total_discount", 0))
-        taxes           = item.get("taxes", [])
+        cantidad        = float(item.get("quantity", 1)) or 1.0
+        # gross_total_money = precio final con IVA antes de descuento.
+        # Si no viene, se usa total_money (post-descuento) como respaldo.
+        bruto_con_iva   = float(item.get("gross_total_money",
+                                          item.get("total_money", 0)))
+        descuento_bruto = float(item.get("total_discount", 0))
 
-        subtotal_neto   = round(total_bruto - total_impuesto, 5)
-        precio_unitario = round(subtotal_neto / cantidad, 5) if cantidad else 0.0
-
-        # Determinar tasa y código de tarifa
-        if taxes:
-            tasa        = float(taxes[0].get("rate", 13.0))
-            cod_tarifa  = _TARIFA_MAP.get(tasa, "08")
-        else:
-            tasa        = 0.0
-            cod_tarifa  = "01"   # Exento
+        # Desglose IVA-inclusivo 13%
+        subtotal_neto   = round(bruto_con_iva / (1 + _IVA_RATE / 100), 5)
+        descuento_neto  = round(descuento_bruto / (1 + _IVA_RATE / 100), 5)
+        base_imponible  = round(subtotal_neto - descuento_neto, 5)
+        iva             = round(base_imponible * _IVA_RATE / 100, 5)
+        precio_unitario = round(subtotal_neto / cantidad, 5)
+        monto_total_lin = round(base_imponible + iva, 5)
 
         linea: dict[str, Any] = {
             "NumeroLinea":    idx,
@@ -181,29 +191,25 @@ def _convertir_lineas(line_items: list[dict]) -> tuple[list[dict], dict]:
             "Unidad":         "Unid",
             "Cantidad":       cantidad,
             "PrecioUnitario": precio_unitario,
-            "SubTotal":       round(subtotal_neto, 5),
-            "Descuento":      round(descuento, 5),
-            "SubTotalNeto":   round(subtotal_neto - descuento, 5),
-            "MontoTotalLinea": round(total_bruto, 5),
+            "SubTotal":       subtotal_neto,
+            "Descuento":      descuento_neto,
+            "SubTotalNeto":   base_imponible,
+            "MontoTotalLinea": monto_total_lin,
             "Impuesto": {
                 "Codigo":       "01",         # 01 = IVA
-                "CodigoTarifa": cod_tarifa,
-                "Tarifa":       tasa,
-                "Monto":        round(total_impuesto, 5),
-            } if total_impuesto > 0 else None,
+                "CodigoTarifa": _TARIFA_MAP.get(_IVA_RATE, "08"),
+                "Tarifa":       _IVA_RATE,
+                "Monto":        iva,
+            },
         }
 
         lineas.append(linea)
 
-        # Acumular resumen
-        if total_impuesto > 0:
-            resumen["total_mercancias_gravadas"] += round(subtotal_neto - descuento, 5)
-        else:
-            resumen["total_mercancias_exentas"]  += round(subtotal_neto - descuento, 5)
-
-        resumen["total_descuentos"] += descuento
-        resumen["total_impuesto"]   += total_impuesto
-        resumen["total_comprobante"] += total_bruto
+        # Todas las líneas son gravadas al 13%
+        resumen["total_mercancias_gravadas"] += base_imponible
+        resumen["total_descuentos"]  += descuento_neto
+        resumen["total_impuesto"]    += iva
+        resumen["total_comprobante"] += monto_total_lin
 
     # Redondear totales del resumen
     for k in resumen:
