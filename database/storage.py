@@ -222,6 +222,8 @@ def actualizar_estado(
     respuesta: dict[str, Any] | None = None,
     error: str | None = None,
     tipo_error: TipoError | None = None,
+    total_comprobante: float | None = None,
+    total_impuesto: float | None = None,
 ) -> None:
     """Actualiza el estado de una factura tras el intento de envío."""
     ahora = datetime.now(timezone.utc).isoformat()
@@ -236,6 +238,8 @@ def actualizar_estado(
                 respuesta_hacienda = COALESCE(?, respuesta_hacienda),
                 detalle_error      = COALESCE(?, detalle_error),
                 error_tipo         = COALESCE(?, error_tipo),
+                total_comprobante  = COALESCE(?, total_comprobante),
+                total_impuesto     = COALESCE(?, total_impuesto),
                 intentos           = intentos + 1,
                 actualizado_en     = ?
             WHERE loyverse_receipt_id = ?
@@ -248,6 +252,8 @@ def actualizar_estado(
                 json.dumps(respuesta, ensure_ascii=False) if respuesta else None,
                 error,
                 tipo_error,
+                total_comprobante,
+                total_impuesto,
                 ahora,
                 receipt_id,
             ),

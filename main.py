@@ -164,6 +164,8 @@ def _procesar_venta(recibo: dict) -> bool:
                 consecutivo = resultado["consecutivo"],
                 xml_path    = resultado["xml_path"],
                 respuesta   = respuesta,
+                total_comprobante = resultado["total"],
+                total_impuesto    = resultado["total_impuesto"],
             )
 
             if resultado["aceptada"]:
