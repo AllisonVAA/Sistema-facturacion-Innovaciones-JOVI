@@ -1,0 +1,39 @@
+# ── Secretos — NUNCA deben entrar en la imagen Docker ────────────────────────
+.env
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.key
+*.pem
+
+# ── Datos locales — se persisten en volúmenes, no en la imagen ────────────────
+database/*.db
+database/*.db-shm
+database/*.db-wal
+xml_output/
+logs/
+data/
+
+# ── Control de versiones ──────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# ── IDEs y sistema ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# ── Scripts y docs no necesarios en runtime ──────────────────────────────────
+setup.sh
