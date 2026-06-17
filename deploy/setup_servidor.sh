@@ -40,9 +40,17 @@ read -rp "URL de tu repositorio GitHub (privado): " REPO_URL
 read -rp "Dominio para el servicio (ej: facturacion.miempresa.com): " DOMINIO
 read -rp "Token de Loyverse: " LOYVERSE_TOKEN
 read -rp "API Key para proteger los endpoints (escribe una clave larga): " API_KEY
-read -rp "Correo Gmail para SMTP (innovacionesjovi.lib@gmail.com): " SMTP_USER
+read -rp "Correo Gmail para SMTP: " SMTP_USER
 read -rsp "Contraseña de aplicación Gmail (16 caracteres sin espacios): " SMTP_PASSWORD
 echo ""
+echo ""
+echo "--- Datos del emisor (Innovaciones JOVI) ---"
+read -rp "Cédula del emisor: " EMISOR_CEDULA
+read -rp "Nombre del emisor: " EMISOR_NOMBRE
+read -rp "Actividad económica (código CIIU): " EMISOR_ACTIVIDAD
+read -rp "Email del emisor: " EMISOR_EMAIL
+read -rp "Teléfono del emisor: " EMISOR_TELEFONO
+read -rp "Otras señas (dirección): " EMISOR_OTRAS_SENAS
 
 # ── 1. Actualizar sistema ──────────────────────────────────────────────────────
 info "Actualizando paquetes del sistema..."
@@ -120,15 +128,15 @@ HORA_EJECUCION=17
 
 # ── Datos del emisor ───────────────────────────────────────────────────────────
 EMISOR_TIPO_CEDULA=01
-EMISOR_CEDULA=503910760
-EMISOR_NOMBRE=Innovaciones JOVI
-EMISOR_ACTIVIDAD=523406
-EMISOR_EMAIL=innovacionesjovi.lib@gmail.com
-EMISOR_TELEFONO=83586183
+EMISOR_CEDULA=${EMISOR_CEDULA}
+EMISOR_NOMBRE=${EMISOR_NOMBRE}
+EMISOR_ACTIVIDAD=${EMISOR_ACTIVIDAD}
+EMISOR_EMAIL=${EMISOR_EMAIL}
+EMISOR_TELEFONO=${EMISOR_TELEFONO}
 EMISOR_PROVINCIA=5
 EMISOR_CANTON=01
 EMISOR_DISTRITO=01
-EMISOR_OTRAS_SENAS=75mts sur de tienda La Nueva, contiguo a la Copa de Oro
+EMISOR_OTRAS_SENAS=${EMISOR_OTRAS_SENAS}
 
 # ── Email SMTP ─────────────────────────────────────────────────────────────────
 SMTP_HOST=smtp.gmail.com
