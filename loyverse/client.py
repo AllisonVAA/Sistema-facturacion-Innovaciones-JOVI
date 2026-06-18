@@ -271,6 +271,78 @@ class LoyverseClient:
             "store_id": store_id or "",
         }
 
+    # ── Items (productos) ─────────────────────────────────────────────────────
+
+    def get_items(self) -> list[dict[str, Any]]:
+        """
+        Obtiene TODOS los ítems del catálogo de Loyverse con paginación.
+        Cada ítem incluye sus variantes (sku, barcode, precio, costo).
+        """
+        logger.info("Descargando catálogo de productos desde Loyverse...")
+        todos: list[dict] = []
+        params: dict[str, Any] = {"limit": 250}
+        pagina = 1
+
+        while True:
+            data = self._get("items", params=params)
+            items = data.get("items", [])
+            todos.extend(items)
+            logger.debug("Página %d: %d ítems", pagina, len(items))
+            cursor = data.get("cursor")
+            if not cursor:
+                break
+            params = {"cursor": cursor}
+            pagina += 1
+
+        logger.info("Total ítems en Loyverse: %d", len(todos))
+        return todos
+
+    def get_inventory_levels(self, store_id: str | None = None) -> dict[str, float]:
+        """
+        Obtiene el stock actual de todas las variantes.
+        Retorna un dict {variant_id: in_stock}.
+        Si se pasa store_id filtra por tienda, si no usa la primera tienda.
+        """
+        logger.info("Consultando niveles de inventario en Loyverse...")
+
+        # Obtener el store_id si no se proporcionó
+        if not store_id:
+            stores_data = self._get("stores")
+            stores = stores_data.get("stores", [])
+            if stores:
+                store_id = stores[0]["id"]
+
+        niveles: dict[str, float] = {}
+        params: dict[str, Any] = {"limit": 250}
+        if store_id:
+            params["store_id"] = store_id
+
+        pagina = 1
+        while True:
+            data = self._get("inventory_levels", params=params)
+            for nivel in data.get("inventory_levels", []):
+                vid = nivel.get("variant_id", "")
+                stock = nivel.get("in_stock", 0.0) or 0.0
+                if vid:
+                    niveles[vid] = float(stock)
+            cursor = data.get("cursor")
+            if not cursor:
+                break
+            params = {"cursor": cursor}
+            pagina += 1
+
+        logger.info("Niveles de inventario obtenidos: %d variantes", len(niveles))
+        return niveles
+
+    def get_categories(self) -> dict[str, str]:
+        """Retorna un dict {category_id: nombre_categoria}."""
+        data = self._get("categories")
+        return {
+            c["id"]: c.get("name", "")
+            for c in data.get("categories", [])
+            if c.get("id")
+        }
+
     # ── Enriquecer recibo ─────────────────────────────────────────────────────
 
     def enriquecer_recibo(self, recibo: dict) -> dict:
