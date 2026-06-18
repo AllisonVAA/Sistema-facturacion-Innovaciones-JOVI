@@ -30,3 +30,6 @@ build/
 .vscode/
 .idea/
 *.swp
+
+# ── Documento de traspaso (uso interno, no publicar) ─────────────────────────
+ESTADO_PROYECTO.md

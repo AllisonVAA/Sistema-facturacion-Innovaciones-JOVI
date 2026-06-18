@@ -1,0 +1,4 @@
+*.csv
+*.log
+.env
+test_api.py
