@@ -297,15 +297,27 @@ class LoyverseClient:
         logger.info("Total ítems en Loyverse: %d", len(todos))
         return todos
 
-    def get_inventory_levels(self, store_id: str | None = None) -> dict[str, float]:
+    def get_inventory_levels(self, items: list[dict], store_id: str | None = None) -> dict[str, float]:
         """
         Obtiene el stock actual de todas las variantes.
+        La API de Loyverse requiere variant_ids explícitos — los extraemos de los items.
         Retorna un dict {variant_id: in_stock}.
-        Si se pasa store_id filtra por tienda, si no usa la primera tienda.
         """
         logger.info("Consultando niveles de inventario en Loyverse...")
 
-        # Obtener el store_id si no se proporcionó
+        # Extraer todos los variant_ids de los items
+        variant_ids = [
+            v["variant_id"]
+            for item in items
+            for v in item.get("variants", [])
+            if v.get("variant_id")
+        ]
+
+        if not variant_ids:
+            logger.warning("No hay variant_ids para consultar inventario")
+            return {}
+
+        # Obtener store_id si no se proporcionó
         if not store_id:
             stores_data = self._get("stores")
             stores = stores_data.get("stores", [])
@@ -313,23 +325,29 @@ class LoyverseClient:
                 store_id = stores[0]["id"]
 
         niveles: dict[str, float] = {}
-        params: dict[str, Any] = {"limit": 250}
-        if store_id:
-            params["store_id"] = store_id
 
-        pagina = 1
-        while True:
-            data = self._get("inventory_levels", params=params)
-            for nivel in data.get("inventory_levels", []):
-                vid = nivel.get("variant_id", "")
-                stock = nivel.get("in_stock", 0.0) or 0.0
-                if vid:
-                    niveles[vid] = float(stock)
-            cursor = data.get("cursor")
-            if not cursor:
-                break
-            params = {"cursor": cursor}
-            pagina += 1
+        # La API acepta hasta 100 variant_ids por llamada
+        CHUNK = 100
+        for i in range(0, len(variant_ids), CHUNK):
+            chunk = variant_ids[i:i + CHUNK]
+            params: dict[str, Any] = {
+                "variant_ids": ",".join(chunk),
+                "limit": 250,
+            }
+            if store_id:
+                params["store_id"] = store_id
+
+            while True:
+                data = self._get("inventory_levels", params=params)
+                for nivel in data.get("inventory_levels", []):
+                    vid = nivel.get("variant_id", "")
+                    stock = nivel.get("in_stock", 0.0) or 0.0
+                    if vid:
+                        niveles[vid] = float(stock)
+                cursor = data.get("cursor")
+                if not cursor:
+                    break
+                params = {"cursor": cursor}
 
         logger.info("Niveles de inventario obtenidos: %d variantes", len(niveles))
         return niveles

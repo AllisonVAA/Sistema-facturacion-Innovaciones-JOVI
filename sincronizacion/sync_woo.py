@@ -170,7 +170,7 @@ def main() -> None:
     logger.info("Descargando datos de Loyverse...")
     categorias = loy.get_categories()
     items      = loy.get_items()
-    niveles    = loy.get_inventory_levels()
+    niveles    = loy.get_inventory_levels(items)
     productos  = aplanar_items(items, categorias, niveles)
     logger.info("Productos Loyverse (variantes): %d", len(productos))
 
