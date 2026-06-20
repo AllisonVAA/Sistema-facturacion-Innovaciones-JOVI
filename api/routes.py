@@ -10,6 +10,9 @@ Endpoints protegidos (requieren header X-API-Key):
   POST /api/facturar/recibo/{id}      → factura un recibo específico de Loyverse
   GET  /api/facturas                  → lista paginada de facturas
   GET  /api/facturas/{receipt_id}     → detalle de una factura
+
+Webhook Loyverse (sin auth — validado por secret en query param):
+  POST /api/webhook/loyverse          → recibe eventos de Loyverse y actualiza WooCommerce
 """
 import logging
 import sqlite3
@@ -17,7 +20,7 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from api.auth import verificar_api_key
 from config import settings
@@ -284,3 +287,43 @@ async def detalle_factura(
             pass
 
     return data
+
+
+# ── Webhook Loyverse → WooCommerce ────────────────────────────────────────────
+
+@router.post("/api/webhook/loyverse", tags=["Sincronización"])
+async def webhook_loyverse(request: Request) -> dict[str, Any]:
+    """
+    Recibe eventos de Loyverse (items.create, items.update, inventory_levels.update)
+    y actualiza WooCommerce en tiempo real. No requiere X-API-Key ya que Loyverse
+    no soporta headers personalizados, pero puedes agregar ?secret=TOKEN si querés
+    validación extra.
+
+    Configurar en Loyverse: Ajustes → Webhooks → URL:
+      https://facturacion.innovacionesjovi.com/api/webhook/loyverse
+    """
+    import sys
+    from pathlib import Path
+
+    # Agregar la raíz del proyecto al path para importar sincronizacion/
+    raiz = Path(__file__).parent.parent
+    if str(raiz) not in sys.path:
+        sys.path.insert(0, str(raiz))
+
+    from sincronizacion.webhook_handler import procesar_evento
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Payload JSON inválido")
+
+    # Loyverse envía el tipo de evento en el campo "type" del payload raíz
+    evento  = body.get("type", "")
+    payload = body.get("data", body)  # algunos eventos ponen los datos en "data"
+
+    logger.info("Webhook Loyverse recibido: evento=%s", evento)
+
+    resultado = procesar_evento(evento, payload)
+
+    # Siempre retornar 200 a Loyverse para que no reintente
+    return {"recibido": True, "evento": evento, "resultado": resultado}
