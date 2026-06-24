@@ -46,6 +46,12 @@ MAPEO_PATH = Path(__file__).parent / "mapeo.json"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+def _limpiar_nombre(nombre: str) -> str:
+    """Elimina sufijos de código interno tipo '. COD: ABC123' del nombre."""
+    import re
+    return re.sub(r"[\.\s]*\bCOD[:\s]+\S+.*$", "", nombre, flags=re.IGNORECASE).strip()
+
+
 def _normalizar(texto: str) -> str:
     texto = texto.lower().strip()
     texto = unicodedata.normalize("NFD", texto)
@@ -94,6 +100,12 @@ def aplanar_items(items: list[dict], categorias: dict, niveles: dict) -> list[di
         cat_id    = item.get("category_id") or ""
         categoria = categorias.get(cat_id, "")
         variantes = item.get("variants", [])
+
+        nombre = _limpiar_nombre(nombre)
+
+        # Omitir servicios de reparación
+        if "reparac" in categoria.lower():
+            continue
 
         for variante in variantes:
             vid    = variante.get("variant_id", "")

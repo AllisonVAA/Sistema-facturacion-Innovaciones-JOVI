@@ -337,17 +337,22 @@ class LoyverseClient:
             if store_id:
                 params["store_id"] = store_id
 
-            while True:
-                data = self._get("inventory_levels", params=params)
-                for nivel in data.get("inventory_levels", []):
-                    vid = nivel.get("variant_id", "")
-                    stock = nivel.get("in_stock", 0.0) or 0.0
-                    if vid:
-                        niveles[vid] = float(stock)
-                cursor = data.get("cursor")
-                if not cursor:
-                    break
-                params = {"cursor": cursor}
+            try:
+                while True:
+                    data = self._get("inventory_levels", params=params)
+                    for nivel in data.get("inventory_levels", []):
+                        vid = nivel.get("variant_id", "")
+                        stock = nivel.get("in_stock", 0.0) or 0.0
+                        if vid:
+                            niveles[vid] = float(stock)
+                    cursor = data.get("cursor")
+                    if not cursor:
+                        break
+                    params = {"cursor": cursor}
+            except Exception as exc:
+                # inventory_levels requiere plan pago — ignorar y continuar sin stock
+                logger.warning("inventory_levels no disponible (%s). Stock será 0.", exc)
+                break
 
         logger.info("Niveles de inventario obtenidos: %d variantes", len(niveles))
         return niveles

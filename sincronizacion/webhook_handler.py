@@ -18,7 +18,13 @@ from pathlib import Path
 
 from sincronizacion.woo_client import WooClient
 
+import re
+
 logger = logging.getLogger(__name__)
+
+
+def _limpiar_nombre(nombre: str) -> str:
+    return re.sub(r"[\.\s]*\bCOD[:\s]+\S+.*$", "", nombre, flags=re.IGNORECASE).strip()
 
 MAPEO_PATH = Path(__file__).parent / "mapeo.json"
 
@@ -59,12 +65,19 @@ def _extraer_variante(item: dict) -> dict:
 
 def handle_item_create(item: dict, woo: WooClient) -> dict:
     """Crea el producto en WooCommerce y lo agrega al mapeo."""
-    nombre   = item.get("item_name", "").strip()
+    nombre   = _limpiar_nombre(item.get("item_name", "").strip())
     variante = _extraer_variante(item)
     vid      = variante["variant_id"]
 
     if not nombre or not vid:
         return {"accion": "ignorado", "razon": "item sin nombre o variant_id"}
+
+    # No crear productos sin stock o de reparación
+    if variante["stock"] == 0:
+        return {"accion": "ignorado", "razon": "stock 0"}
+    categoria = (item.get("category_name") or "").lower()
+    if "reparac" in categoria:
+        return {"accion": "ignorado", "razon": "categoria reparacion"}
 
     mapeo = cargar_mapeo()
 
@@ -108,7 +121,7 @@ def handle_item_create(item: dict, woo: WooClient) -> dict:
 
 def handle_item_update(item: dict, woo: WooClient) -> dict:
     """Actualiza precio y stock en WooCommerce si el ítem está en el mapeo."""
-    nombre   = item.get("item_name", "").strip()
+    nombre   = _limpiar_nombre(item.get("item_name", "").strip())
     variante = _extraer_variante(item)
     vid      = variante["variant_id"]
 

@@ -6,6 +6,7 @@ Lee WOO_URL, WOO_CONSUMER_KEY y WOO_CONSUMER_SECRET desde el .env del proyecto.
 import logging
 import os
 import time
+import random
 from typing import Any
 
 import requests
@@ -47,16 +48,24 @@ class WooClient:
     def _request(self, method: str, endpoint: str, **kwargs) -> Any:
         url = f"{WOO_URL}/wp-json/wc/v3/{endpoint.lstrip('/')}"
         params = {**self._auth_params, **kwargs.pop("params", {})}
-        resp = requests.request(
-            method, url,
-            params=params,
-            headers=_HEADERS,
-            timeout=45,
-            allow_redirects=False,
-            **kwargs,
-        )
-        resp.raise_for_status()
-        return resp.json()
+        for intento in range(4):
+            try:
+                resp = requests.request(
+                    method, url,
+                    params=params,
+                    headers=_HEADERS,
+                    timeout=45,
+                    allow_redirects=False,
+                    **kwargs,
+                )
+                resp.raise_for_status()
+                return resp.json()
+            except (requests.ConnectionError, requests.Timeout) as exc:
+                if intento == 3:
+                    raise
+                espera = 5 + intento * 5 + random.uniform(0, 3)
+                logger.warning("Conexión perdida (intento %d/4), reintentando en %.1fs: %s", intento + 1, espera, exc)
+                time.sleep(espera)
 
     # ── Lectura ───────────────────────────────────────────────────────────────
 
